@@ -122,10 +122,11 @@
       const formData = new FormData();
       formData.append("name", name);
       formData.append("signature", signatureData);
+      formData.append("access_key", "ThisIsMine");
 
       document.getElementById('submit-btn').disabled = true;
 
-      fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec', {
+      fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec', { 
         method: 'POST',
         body: formData
       })
