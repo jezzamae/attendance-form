@@ -4,70 +4,77 @@
   <title>Attendance Form</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    * {
-      box-sizing: border-box;
-    }
-    body, html {
+    html, body {
       height: 100%;
       margin: 0;
-      padding: 0;
       font-family: Arial, sans-serif;
-      background-color: #f7f9fc;
+      background-color: #f0f2f5;
       display: flex;
       justify-content: center;
       align-items: center;
     }
+
     .container {
+      background-color: white;
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       width: 100%;
-      max-width: 450px;
-      padding: 20px;
-      background-color: #fff;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      max-width: 480px;
     }
+
     h1 {
       text-align: center;
-      color: #333;
       margin-bottom: 20px;
+      font-size: 22px;
     }
+
     label {
-      margin-top: 15px;
       font-weight: bold;
       display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
     }
-    input, button, canvas {
+
+    input {
       width: 100%;
-      margin-top: 5px;
-    }
-    input, button {
       padding: 10px;
       font-size: 16px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
     }
+
     canvas {
+      width: 100%;
       height: 150px;
-      border: 2px dashed #aaa;
-      background-color: white;
-      border-radius: 6px;
+      border: 2px dashed #ccc;
+      background-color: #fff;
+      border-radius: 5px;
       cursor: crosshair;
-      margin-top: 5px;
     }
+
     .buttons {
       display: flex;
       gap: 10px;
       margin-top: 10px;
     }
-    .buttons button {
+
+    button {
       flex: 1;
-      background-color: #007BFF;
-      border: none;
+      padding: 10px;
+      font-size: 16px;
+      background-color: #007bff;
       color: white;
+      border: none;
       border-radius: 5px;
       cursor: pointer;
-      transition: 0.2s ease;
     }
-    .buttons button:hover {
+
+    button:hover {
       background-color: #0056b3;
     }
+
     #message {
       margin-top: 15px;
       font-weight: bold;
@@ -80,11 +87,11 @@
     <h1>Attendance Form</h1>
 
     <label for="name">Name:</label>
-    <input list="nameList" id="name" name="name" autocomplete="off" placeholder="Type or choose your name">
+    <input list="nameList" id="name" name="name" placeholder="Type or select your name">
     <datalist id="nameList"></datalist>
 
     <label for="signature">Signature:</label>
-    <canvas id="signature" width="300" height="150"></canvas>
+    <canvas id="signature" width="400" height="150"></canvas>
 
     <div class="buttons">
       <button id="clear">Clear</button>
@@ -123,7 +130,6 @@
       hasSigned = false;
     });
 
-    // Load names
     fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec?action=getNames')
       .then(res => res.json())
       .then(names => {
@@ -135,7 +141,6 @@
         });
       });
 
-    // Load signature if exists
     document.getElementById('name').addEventListener('change', () => {
       const name = document.getElementById('name').value.trim();
       if (!name) return;
@@ -157,7 +162,6 @@
         });
     });
 
-    // Submit attendance
     document.getElementById('submit').addEventListener('click', () => {
       const name = document.getElementById('name').value.trim();
       const message = document.getElementById('message');
