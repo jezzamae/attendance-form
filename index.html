@@ -219,7 +219,7 @@
         return;
       }
 
-      const dataUrl = canvas.toDataURL("image/jpeg");
+      const dataUrl = canvas.toDataURL("image/png");
       const formData = new URLSearchParams();
       formData.append("name", name);
       formData.append("signature", dataUrl);
@@ -250,3 +250,4 @@
   </script>
 </body>
 </html>
+
