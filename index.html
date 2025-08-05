@@ -24,13 +24,16 @@
     #output {
       margin-top: 20px;
     }
+    datalist option {
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
 
   <h2>Attendance Sign-In</h2>
 
-  <input list="name-suggestions" id="name" placeholder="Enter your name" />
+  <input list="name-suggestions" id="name" placeholder="Enter your name" autocomplete="off" />
   <datalist id="name-suggestions"></datalist><br/>
 
   <label>Sign Below:</label><br/>
@@ -44,9 +47,8 @@
   <script>
     const canvas = document.getElementById('signature-pad');
     const ctx = canvas.getContext('2d');
-    let drawing = false;
+    let drawing = false, hasSigned = false;
     let lastX = 0, lastY = 0;
-    let hasSigned = false;
 
     function getXY(e) {
       const rect = canvas.getBoundingClientRect();
@@ -79,6 +81,11 @@
       drawing = false;
     }
 
+    function clearSignature() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasSigned = false;
+    }
+
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
@@ -87,30 +94,54 @@
     canvas.addEventListener('touchmove', draw);
     canvas.addEventListener('touchend', stopDrawing);
 
-    document.getElementById('clear-btn').addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      hasSigned = false;
+    document.getElementById('clear-btn').addEventListener('click', clearSignature);
+
+    // 🔹 Fetch name list for suggestions
+    fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec?action=names')
+      .then(res => res.json())
+      .then(data => {
+        const datalist = document.getElementById('name-suggestions');
+        datalist.innerHTML = data.names.map(name => `<option value="${name}">`).join('');
+      });
+
+    // 🔹 Check existing signature when typing
+    document.getElementById('name').addEventListener('blur', () => {
+      const name = document.getElementById('name').value.trim();
+      if (!name) return;
+
+      fetch(`https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec?action=check&name=${encodeURIComponent(name)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.found && data.signatureUrl) {
+            // Show existing signature
+            const img = new Image();
+            img.onload = function () {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              hasSigned = true;
+            };
+            img.src = data.signatureUrl;
+            document.getElementById('output').innerHTML = `<p>Already signed today. Signature loaded.</p>`;
+          } else {
+            clearSignature();
+            document.getElementById('output').innerHTML = '';
+          }
+        });
     });
 
+    // 🔹 Submit Attendance
     document.getElementById('submit-btn').addEventListener('click', () => {
       const name = document.getElementById('name').value.trim();
-      if (!name) {
-        alert("Please enter your name.");
-        return;
-      }
-
-      if (!hasSigned) {
-        alert("Please draw your signature.");
-        return;
-      }
+      if (!name) return alert("Please enter your name.");
+      if (!hasSigned) return alert("Please draw your signature.");
 
       const signatureData = canvas.toDataURL();
       const formData = new FormData();
       formData.append("name", name);
       formData.append("signature", signatureData);
-      formData.append("key", "ThisIsMine"); // ✅ API key
+      formData.append("key", "ThisIsMine");
 
-      fetch("https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec", {
+      fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec', {
         method: 'POST',
         body: formData
       })
@@ -120,33 +151,16 @@
           document.getElementById('output').innerHTML = `
             <h3>✅ Signed In!</h3>
             <p>Name: ${name}</p>
-            <img src="${signatureData}" width="300" height="150" style="border:1px solid #ccc;" />
+            <img src="${data.imageUrl}" width="300" height="150" style="border:1px solid #ccc;" />
           `;
           document.getElementById('name').value = '';
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          hasSigned = false;
+          clearSignature();
         } else {
-          alert("Submission failed: " + data.error);
+          alert("Error: " + data.error);
         }
       })
-      .catch(err => {
-        alert("Fetch error: " + err.message);
-      });
+      .catch(err => alert("Fetch error: " + err.message));
     });
-
-    // 🧠 Load names from Sheet2
-    fetch("https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec")
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          const dataList = document.getElementById('name-suggestions');
-          data.names.forEach(name => {
-            const option = document.createElement('option');
-            option.value = name;
-            dataList.appendChild(option);
-          });
-        }
-      });
   </script>
 
 </body>
