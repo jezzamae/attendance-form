@@ -1,160 +1,125 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tablet Attendance</title>
+  <title>Attendance Form</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      text-align: center;
-    }
-    input, button {
-      font-size: 18px;
-      padding: 10px;
-      margin: 10px;
-    }
-    #signature-pad {
-      border: 2px solid #333;
-      border-radius: 5px;
-      margin-top: 10px;
-      touch-action: none;
-    }
-    #output {
-      margin-top: 20px;
-    }
-    datalist option {
-      font-size: 16px;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    canvas { border: 1px solid #ccc; display: block; margin-top: 10px; }
+    input, button { margin-top: 10px; display: block; }
   </style>
 </head>
 <body>
+  <h1>Attendance Form</h1>
+  <label for="name">Name:</label>
+  <input list="nameList" id="name" name="name" autocomplete="off">
+  <datalist id="nameList"></datalist>
 
-  <h2>Attendance Sign-In</h2>
+  <label>Signature:</label>
+  <canvas id="signature" width="300" height="150"></canvas>
+  <button id="clear">Clear Signature</button>
+  <button id="submit">Submit</button>
 
-  <input type="text" id="name" placeholder="Enter your name" list="nameSuggestions" autocomplete="off" /><br/>
-  <datalist id="nameSuggestions"></datalist>
-
-  <label>Sign Below:</label><br/>
-  <canvas id="signature-pad" width="300" height="150"></canvas><br/>
-
-  <button id="clear-btn">Clear Signature</button>
-  <button id="submit-btn">Submit Attendance</button>
-
-  <div id="output"></div>
+  <p id="message"></p>
 
   <script>
-    const canvas = document.getElementById('signature-pad');
+    const canvas = document.getElementById('signature');
     const ctx = canvas.getContext('2d');
     let drawing = false;
-    let lastX = 0, lastY = 0;
     let hasSigned = false;
 
-    function getXY(e) {
-      const rect = canvas.getBoundingClientRect();
-      if (e.touches && e.touches.length) {
-        return [e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top];
-      }
-      return [e.clientX - rect.left, e.clientY - rect.top];
-    }
-
-    function startDrawing(e) {
-      drawing = true;
-      [lastX, lastY] = getXY(e);
-    }
+    canvas.addEventListener('mousedown', () => { drawing = true; });
+    canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+    canvas.addEventListener('mouseout', () => { drawing = false; });
+    canvas.addEventListener('mousemove', draw);
 
     function draw(e) {
       if (!drawing) return;
-      e.preventDefault();
-      const [x, y] = getXY(e);
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
       hasSigned = true;
-      [lastX, lastY] = [x, y];
+      const rect = canvas.getBoundingClientRect();
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#000';
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
     }
 
-    function stopDrawing() {
-      drawing = false;
-    }
-
-    // Event listeners
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
-    canvas.addEventListener('touchstart', startDrawing);
-    canvas.addEventListener('touchmove', draw);
-    canvas.addEventListener('touchend', stopDrawing);
-
-    document.getElementById('clear-btn').addEventListener('click', () => {
+    document.getElementById('clear').addEventListener('click', () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       hasSigned = false;
     });
 
-    // Submit Attendance
-    document.getElementById('submit-btn').addEventListener('click', () => {
+    // Fetch names from Google Sheets
+    fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec?action=getNames')
+      .then(res => res.json())
+      .then(names => {
+        const datalist = document.getElementById('nameList');
+        names.forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          datalist.appendChild(option);
+        });
+      });
+
+    // Load signature when name changes
+    document.getElementById('name').addEventListener('change', () => {
       const name = document.getElementById('name').value.trim();
+      if (!name) return;
+      fetch(`https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec?action=getSignature&name=${encodeURIComponent(name)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.url) {
+            const img = new Image();
+            img.onload = () => {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              hasSigned = true;
+            };
+            img.src = data.url;
+          } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hasSigned = false;
+          }
+        });
+    });
+
+    // Submit attendance
+    document.getElementById('submit').addEventListener('click', () => {
+      const name = document.getElementById('name').value.trim();
+      const message = document.getElementById('message');
       if (!name) {
-        alert("Please enter your name.");
+        message.textContent = "Please enter your name.";
         return;
       }
-
       if (!hasSigned) {
-        alert("Please draw your signature.");
+        message.textContent = "Please sign before submitting.";
         return;
       }
 
-      const signatureData = canvas.toDataURL();
-
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("signature", signatureData);
-      formData.append("key", "ThisIsMine");
+      const dataUrl = canvas.toDataURL("image/jpeg");
+      const formData = new URLSearchParams();
+      formData.append('name', name);
+      formData.append('signature', dataUrl);
+      formData.append('key', 'ThisIsMine');
 
       fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec', {
         method: 'POST',
         body: formData
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById('output').innerHTML = `
-            <h3>✅ Signed In!</h3>
-            <p>Name: ${name}</p>
-            <img src="${signatureData}" width="300" height="150" style="border:1px solid #ccc;" />
-          `;
-          document.getElementById('name').value = '';
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          hasSigned = false;
-        } else {
-          alert("Submission failed: " + data.error);
-        }
-      })
-      .catch(err => {
-        alert("Fetch error: " + err.message);
-      });
-    });
-
-    // Fetch name suggestions from Google Sheet
-    fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec?action=getNames')
-      .then(res => res.json())
-      .then(names => {
-        const dataList = document.getElementById('nameSuggestions');
-        names.forEach(name => {
-          const option = document.createElement('option');
-          option.value = name;
-          dataList.appendChild(option);
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            message.textContent = "Attendance submitted successfully!";
+          } else {
+            message.textContent = "Error: " + data.error;
+          }
+        })
+        .catch(err => {
+          message.textContent = "Failed to submit. Try again.";
+          console.error(err);
         });
-      })
-      .catch(err => {
-        console.error("Name list fetch failed:", err);
-      });
+    });
   </script>
-
 </body>
 </html>
