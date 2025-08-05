@@ -7,23 +7,45 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      background-color: #f9f9f9;
       text-align: center;
+      padding: 20px;
     }
+
+    h2 {
+      color: #003366;
+    }
+
     input, button {
       font-size: 18px;
       padding: 10px;
       margin: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
+
+    button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
     #signature-pad {
-      border: 2px solid #333;
-      border-radius: 5px;
+      border: 2px solid #003366;
+      border-radius: 6px;
       margin-top: 10px;
       touch-action: none;
     }
+
     #output {
       margin-top: 20px;
     }
+
     datalist option {
       font-size: 16px;
     }
@@ -66,7 +88,7 @@
 
     function draw(e) {
       if (!drawing) return;
-      e.preventDefault(); // Prevent scrolling
+      e.preventDefault();
       const [x, y] = getXY(e);
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
@@ -82,7 +104,7 @@
       drawing = false;
     }
 
-    // Touch + Mouse support
+    // Event listeners for drawing
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
@@ -91,12 +113,13 @@
     canvas.addEventListener('touchmove', draw, { passive: false });
     canvas.addEventListener('touchend', stopDrawing);
 
+    // Clear signature
     document.getElementById('clear-btn').addEventListener('click', () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       hasSigned = false;
     });
 
-    // Submit Attendance
+    // Submit attendance
     document.getElementById('submit-btn').addEventListener('click', () => {
       const name = document.getElementById('name').value.trim();
       if (!name) {
@@ -140,7 +163,7 @@
       });
     });
 
-    // Fetch name suggestions
+    // Load name suggestions
     fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec?action=getNames')
       .then(res => res.json())
       .then(names => {
