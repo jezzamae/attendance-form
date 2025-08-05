@@ -7,16 +7,28 @@
     * {
       box-sizing: border-box;
     }
-    body {
+    body, html {
+      height: 100%;
+      margin: 0;
+      padding: 0;
       font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 500px;
-      margin: auto;
       background-color: #f7f9fc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 450px;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
     h1 {
       text-align: center;
       color: #333;
+      margin-bottom: 20px;
     }
     label {
       margin-top: 15px;
@@ -37,6 +49,7 @@
       background-color: white;
       border-radius: 6px;
       cursor: crosshair;
+      margin-top: 5px;
     }
     .buttons {
       display: flex;
@@ -58,30 +71,28 @@
     #message {
       margin-top: 15px;
       font-weight: bold;
-      color: green;
       text-align: center;
-    }
-    @media (max-width: 500px) {
-      h1 { font-size: 24px; }
     }
   </style>
 </head>
 <body>
-  <h1>Attendance Form</h1>
+  <div class="container">
+    <h1>Attendance Form</h1>
 
-  <label for="name">Name:</label>
-  <input list="nameList" id="name" name="name" autocomplete="off" placeholder="Type or choose your name">
-  <datalist id="nameList"></datalist>
+    <label for="name">Name:</label>
+    <input list="nameList" id="name" name="name" autocomplete="off" placeholder="Type or choose your name">
+    <datalist id="nameList"></datalist>
 
-  <label for="signature">Signature:</label>
-  <canvas id="signature" width="300" height="150"></canvas>
+    <label for="signature">Signature:</label>
+    <canvas id="signature" width="300" height="150"></canvas>
 
-  <div class="buttons">
-    <button id="clear">Clear</button>
-    <button id="submit">Submit</button>
+    <div class="buttons">
+      <button id="clear">Clear</button>
+      <button id="submit">Submit</button>
+    </div>
+
+    <p id="message"></p>
   </div>
-
-  <p id="message"></p>
 
   <script>
     const canvas = document.getElementById('signature');
@@ -89,9 +100,9 @@
     let drawing = false;
     let hasSigned = false;
 
-    canvas.addEventListener('mousedown', () => { drawing = true; });
+    canvas.addEventListener('mousedown', () => drawing = true);
     canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
-    canvas.addEventListener('mouseout', () => { drawing = false; });
+    canvas.addEventListener('mouseout', () => drawing = false);
     canvas.addEventListener('mousemove', draw);
 
     function draw(e) {
@@ -112,7 +123,7 @@
       hasSigned = false;
     });
 
-    // Load names from Google Sheets
+    // Load names
     fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec?action=getNames')
       .then(res => res.json())
       .then(names => {
@@ -124,7 +135,7 @@
         });
       });
 
-    // Load signature if already exists
+    // Load signature if exists
     document.getElementById('name').addEventListener('change', () => {
       const name = document.getElementById('name').value.trim();
       if (!name) return;
@@ -146,29 +157,29 @@
         });
     });
 
-    // Submit data
+    // Submit attendance
     document.getElementById('submit').addEventListener('click', () => {
       const name = document.getElementById('name').value.trim();
       const message = document.getElementById('message');
       if (!name) {
         message.textContent = "Please enter your name.";
-        message.style.color = 'red';
+        message.style.color = "red";
         return;
       }
       if (!hasSigned) {
         message.textContent = "Please sign before submitting.";
-        message.style.color = 'red';
+        message.style.color = "red";
         return;
       }
 
       const dataUrl = canvas.toDataURL("image/jpeg");
       const formData = new URLSearchParams();
-      formData.append('name', name);
-      formData.append('signature', dataUrl);
-      formData.append('key', 'ThisIsMine');
+      formData.append("name", name);
+      formData.append("signature", dataUrl);
+      formData.append("key", "ThisIsMine");
 
-      fetch('https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec', {
-        method: 'POST',
+      fetch("https://script.google.com/macros/s/AKfycbwA6Aix25v9WTQaVDtQGYvM-Ld4qze6eIaV7mN5BMbly1DLbwCdv5Feb3gCvOHYOJqW/exec", {
+        method: "POST",
         body: formData
       })
         .then(res => res.json())
@@ -181,8 +192,8 @@
             message.style.color = "red";
           }
         })
-        .catch(err => {
-          message.textContent = "Failed to submit. Try again.";
+        .catch(() => {
+          message.textContent = "Submission failed. Try again.";
           message.style.color = "red";
         });
     });
